@@ -72,7 +72,7 @@ class account{
         return ccnumber;
     }
     double dcnumberfun(){
-        return hasdebicard;
+        return dcnumber;
     }
     int getaccountnumber(){
         return accountnumber;
@@ -189,37 +189,91 @@ class Bank{
             }
         }
     }
-    void savetofile(){
-        ofstream outfile("bankdata.txt");
-        if(!outfile){
-            cout<<"File does not exist or an error occured "<<endl;
+    void issuecc(int accountnumber,int pin){
+        accnode *temp3=searchacc(accountnumber);
+        if(temp3==nullptr){
+            cout<<"Account not found "<<endl;
         }else{
-            accnode *temp4=head;
-            while(temp4!=nullptr){
-                outfile<<temp4->data.getaccountnumber()<<endl;
-                outfile<<temp4->data.getname()<<endl;
-                outfile<<temp4->data.getbalance()<<endl;
-                outfile<<temp4->data.getpin()<<endl;
-                temp4=temp4->next;
-
+            if(temp3->data.getpin()!=pin){
+                cout<<"You have entered invalid pin "<<endl;
+            }else{
+                if(temp3->data.hascredi()==true){
+                    cout<<"You already have a credit Card "<<endl;
+                }else{
+                    if(temp3->data.getbalance()<50000){
+                        cout<<"You balance is less than the threshold "<<endl;
+                    }else{
+                        double cccnum=accountnumber*10000+1111;
+                        temp3->data.setcre(true);
+                        temp3->data.setcrenum(cccnum);
+                        cout<<"Credit card issued with the number "<<cccnum;
+                    }
+                }
             }
-        outfile.close();
-        cout<<"Database updated"<<endl;    
         }
     }
+    void issuedc(int accountnumber,int pin){
+        accnode *temp5=searchacc(accountnumber);
+        if(temp5==nullptr){
+            cout<<"Account not found "<<endl;
+        }else{
+            if(temp5->data.getpin()!=pin){
+                cout<<"You have entered an invalid pin "<<endl;
+            }else{
+                if(temp5->data.hasdebi()==true){
+                    cout<<"You already have a debit card "<<endl;
+                }else{
+                    double dcd=accountnumber*10000+1111;
+                    temp5->data.setdebi(true);
+                    temp5->data.setdebinum(dcd);
+                    cout<<"Debit Card Issued Finally "<<endl;
+                }
+            }
+        }
+    }
+    void savetofile(){
+    ofstream outfile("bankdata.txt");
+    if(!outfile){
+        cout<<"File does not exist or an error occured "<<endl;
+    }else{
+        accnode *temp4=head;
+        while(temp4!=nullptr){
+            outfile<<temp4->data.getaccountnumber()<<endl;
+            outfile<<temp4->data.getname()<<endl;
+            outfile<<temp4->data.getbalance()<<endl;
+            outfile<<temp4->data.getpin()<<endl;
+            outfile<<temp4->data.hasdebi()<<endl;        // NEW
+            outfile<<temp4->data.hascredi()<<endl;       // NEW
+            outfile<<temp4->data.dcnumberfun()<<endl;    // NEW
+            outfile<<temp4->data.ccnumberfun()<<endl;    // NEW
+            temp4=temp4->next;
+        }
+        outfile.close();
+        cout<<"Database updated"<<endl;    
+    }
+}
     void loadFromFile() {
-    // 1. Open the "Box"
     ifstream inFile("bankdata.txt");
     if (!inFile) return; 
-    int an, p;     // Temporary containers for the pieces
+    
+    int an, p;
     string n;
     double b;
+    bool hdc, hcc;   // has debit card, has credit card
+    double dcn, ccn; // debit card number, credit card number
+    
     while (inFile >> an) { 
         inFile.ignore(); 
         getline(inFile, n); 
-        // 5. Read Balance and Pin
         inFile >> b >> p;
-        createaccount(an, n, b, p); 
+        inFile >> hdc >> hcc;     // Read card flags
+        inFile >> dcn >> ccn;     // Read card numbers
+        
+        // Create account with all 8 parameters
+        accnode *newNode = new accnode;
+        newNode->data = account(an, n, b, p, hdc, hcc, dcn, ccn);
+        newNode->next = head;
+        head = newNode;
     }
     inFile.close();
 }
@@ -245,7 +299,8 @@ int main(){
         cout<<"Search For Account Press 4 "<<endl;
         cout<<"Transfer money to bank account Press 5"<<endl;
         cout<<"Display all accounts Press 6 "<<endl;
-        cout<<"Exit Press 7 "<<endl;
+        cout<<"Get credit card For Your account Press 7 "<<endl;
+        cout<<"Get Debit Card for your account Press 8 "<<endl;
         cin>>choice;
         
 
@@ -267,7 +322,7 @@ int main(){
         cin>>balnumb;
         cout<<"Enter your pin "<<endl;
         cin>>pin;
-        ban.createaccount(acnumb,namenumb,balnumb,pin);
+        ban.createaccount(acnumb,namenumb,balnumb,pin,false,false,0,0);
         ban.savetofile();
         cout<<"Account creation successful"<<endl;
         break;
@@ -335,6 +390,7 @@ int main(){
         cout<<"Please enter the pin for sending account "<<endl;
         cin>>pin;
         ban.transfermoney(fromac,toac,tam,pin);
+        ban.savetofile();
 
         }
     break;
@@ -344,6 +400,24 @@ int main(){
     ban.displayallacc();
     break;
     case 7:
+    cout<<"Welcome to Credit Card issuance "<<endl;
+    cout<<"Enter the account Number "<<endl;
+    cin>>acnumb;
+    cout<<"Enter the pin for your account "<<endl;
+    cin>>pin;
+    ban.issuecc(acnumb,pin);
+    ban.savetofile();
+    break;
+    case 8:
+    cout<<"Welcome to Debit Card issuance "<<endl;
+    cout<<"Enter the account Number "<<endl;
+    cin>>acnumb;
+    cout<<"Enter the pin for your account "<<endl;
+    cin>>pin;
+    ban.issuedc(acnumb,pin);
+    ban.savetofile();
+    break;
+    case 9:
     cout<<"Thank you for using our bank "<<endl;
     return 0;
     default:

@@ -1,6 +1,10 @@
 #include <iostream>
 #include <fstream>
 using namespace std;
+struct trastack{
+    string type;
+    double amount;
+};
 class account{
     private:
     int accountnumber;
@@ -11,6 +15,8 @@ class account{
     bool hascrecard;
     double dcnumber;
     double ccnumber;
+    trastack transhis[5];
+    int stacktop;
     public:
     //Default Constructorss Formation
     account(){
@@ -22,21 +28,39 @@ class account{
         hascrecard=false;
         dcnumber=0;
         ccnumber=0;
+        stacktop=-1;
     }
     //Parameterized Constructor
-    account(int accno,string nam,double bal,int pin,bool hasdebicard,bool hascrecard,double dcnumber,double ccnumber){
+    account(int accno,string nam,double bal,int pin,bool hasdebicard,bool hascrecard,double dcnumber,double ccnumber,int stacktop){
         accountnumber=accno;
         name=nam;
         balance=bal;
         this->pin=pin;
         this->hascrecard=hascrecard;
         this->hasdebicard=hasdebicard;
-        
+        this->stacktop=stacktop;
         this->dcnumber=dcnumber;
         this->ccnumber=ccnumber;
 
     }
     //setter Functions
+    int getstacktop(){
+    return stacktop;
+    }
+
+    string gettranstype(int index){
+    if(index >= 0 && index <= stacktop){
+        return transhis[index].type;
+    }
+    return "";
+    }
+
+    double gettransamount(int index){
+    if(index >= 0 && index <= stacktop){
+        return transhis[index].amount;
+    }
+    return 0;
+    }
     void setaccountnumber(int accountnumber){
         this->accountnumber=accountnumber;
     }
@@ -104,6 +128,38 @@ class account{
         cout<<"The balance of the account is "<<balance<<endl;
         cout<<"The account Number is "<<accountnumber<<endl;
     }
+    void addtrans(string type,double amount){
+        if(stacktop<4){
+            stacktop++;
+            transhis[stacktop].amount=amount;
+            transhis[stacktop].type=type;
+        }else{
+            for(int i=0;i<4;i++){
+                transhis[i]=transhis[i+1];
+            }
+        transhis[stacktop].type=type;
+        transhis[stacktop].amount=amount;
+        }
+    }
+    void showtrans(){
+        if(stacktop<0){
+            cout<<"No transaction were found "<<endl;
+        }else{
+            int i=stacktop;
+            while(i>=0){
+                cout<<"This is transaction "<<endl;
+                cout<<transhis[i].amount<<endl;
+                cout<<transhis[i].type<<endl;
+                i--;
+            }
+        }
+    }
+    void settransaction(int index, string type, double amount){
+        if(index >= 0 && index < 5){
+            transhis[index].type = type;
+            transhis[index].amount = amount;
+        }
+    }
 };
 //USE of a Data Structure Specifically LINKED LIST
 struct accnode{
@@ -119,11 +175,11 @@ class Bank{
     Bank(){
         head=nullptr;
     }
-    void createaccount(int accountnumber,string name,double balance,int pin,bool hasdebicard,bool hascrecard,double dcnumber,double ccnumber){
+    void createaccount(int accountnumber,string name,double balance,int pin,bool hasdebicard,bool hascrecard,double dcnumber,double ccnumber,int stacktop){
         //create an object in the heap memory
         accnode *acnod=new accnode;
         //use of the constructor to enter the data in the node
-        acnod->data=account(accountnumber,name,balance,pin,hasdebicard,hascrecard,dcnumber,ccnumber);
+        acnod->data=account(accountnumber,name,balance,pin,hasdebicard,hascrecard,dcnumber,ccnumber,stacktop);
         acnod->next=head;
         head=acnod;
     }
@@ -155,6 +211,7 @@ class Bank{
         accnode *foundnodee=searchacc(accountnumber);
         if(foundnodee!=nullptr){
             foundnodee->data.depositfunc(amount);
+            foundnodee->data.addtrans("Deposit",amount);
         }
         else{
             cout<<"Account not found "<<endl;
@@ -164,6 +221,7 @@ class Bank{
         accnode *foundednode=searchacc(accountmumber);
         if(foundednode!=nullptr){
             foundednode->data.withdrawfunc(amount);
+            foundednode->data.addtrans("Withdraw",amount);
         }
         else{
             cout<<"Account not Found or Error Occured"<<endl;
@@ -182,6 +240,8 @@ class Bank{
                 }else{
                     temp1->data.withdrawfunc(amount);
                     temp2->data.depositfunc(amount);
+                    temp1->data.addtrans("Withdraw",amount);
+                    temp2->data.addtrans("Deposit",amount);
                     cout<<"Money is deposited "<<endl;
                 }
             }else{
@@ -242,10 +302,16 @@ class Bank{
             outfile<<temp4->data.getname()<<endl;
             outfile<<temp4->data.getbalance()<<endl;
             outfile<<temp4->data.getpin()<<endl;
-            outfile<<temp4->data.hasdebi()<<endl;        // NEW
-            outfile<<temp4->data.hascredi()<<endl;       // NEW
-            outfile<<temp4->data.dcnumberfun()<<endl;    // NEW
-            outfile<<temp4->data.ccnumberfun()<<endl;    // NEW
+            outfile<<temp4->data.hasdebi()<<endl;
+            outfile<<temp4->data.hascredi()<<endl;
+            outfile<<temp4->data.dcnumberfun()<<endl;
+            outfile<<temp4->data.ccnumberfun()<<endl;
+            outfile<<temp4->data.getstacktop()<<endl;  // Save stacktop first
+            for(int i = 0; i <= temp4->data.getstacktop() && i < 5; i++){
+                outfile<<temp4->data.gettranstype(i)<<endl;
+                outfile<<temp4->data.gettransamount(i)<<endl;
+                }
+            
             temp4=temp4->next;
         }
         outfile.close();
@@ -259,24 +325,45 @@ class Bank{
     int an, p;
     string n;
     double b;
-    bool hdc, hcc;   // has debit card, has credit card
-    double dcn, ccn; // debit card number, credit card number
+    bool hdc, hcc;
+    double dcn, ccn;
+    int stop;  // stacktop value
     
     while (inFile >> an) { 
         inFile.ignore(); 
         getline(inFile, n); 
         inFile >> b >> p;
-        inFile >> hdc >> hcc;     // Read card flags
-        inFile >> dcn >> ccn;     // Read card numbers
-        
-        // Create account with all 8 parameters
+        inFile >> hdc >> hcc;
+        inFile >> dcn >> ccn;
+        inFile >> stop;  // Read stacktop
         accnode *newNode = new accnode;
-        newNode->data = account(an, n, b, p, hdc, hcc, dcn, ccn);
+        newNode->data = account(an, n, b, p, hdc, hcc, dcn, ccn, stop);
+        for(int i = 0; i <= stop && i < 5; i++){
+            string ttype;
+            double tamount;
+            inFile.ignore();
+            getline(inFile, ttype);
+            inFile >> tamount;
+            newNode->data.settransaction(i, ttype, tamount);
+        }
+        
         newNode->next = head;
         head = newNode;
     }
     inFile.close();
 }
+    void viewTransactionHistory(int accNo, int pin){
+        accnode *temp55=searchacc(accNo);
+        if(temp55==nullptr){
+            cout<<"Account does not exist "<<endl;
+        }else{
+            if(temp55->data.getpin()==pin){
+                temp55->data.showtrans();
+            }else{
+                cout<<"Wrong Pin entered "<<endl;
+            }
+        }   
+    }
 };
 int main(){
     Bank ban;
@@ -301,6 +388,8 @@ int main(){
         cout<<"Display all accounts Press 6 "<<endl;
         cout<<"Get credit card For Your account Press 7 "<<endl;
         cout<<"Get Debit Card for your account Press 8 "<<endl;
+        cout<<"Get transaction History Press 9"<<endl;
+        cout<<"Exit From the Bank Press 10"<<endl;
         cin>>choice;
         
 
@@ -322,7 +411,7 @@ int main(){
         cin>>balnumb;
         cout<<"Enter your pin "<<endl;
         cin>>pin;
-        ban.createaccount(acnumb,namenumb,balnumb,pin,false,false,0,0);
+        ban.createaccount(acnumb,namenumb,balnumb,pin,false,false,0,0,-1);
         ban.savetofile();
         cout<<"Account creation successful"<<endl;
         break;
@@ -418,13 +507,20 @@ int main(){
     ban.savetofile();
     break;
     case 9:
+    cout << "Welcome to Transaction History" << endl;
+    cout << "Enter account number: " << endl;
+    cin >> acnumb;
+    cout << "Enter PIN: " << endl;
+    cin >> pin;
+    ban.viewTransactionHistory(acnumb, pin);
+    break;
+    break;
+    case 10:
     cout<<"Thank you for using our bank "<<endl;
     return 0;
     default:
     cout<<"Enter the amount from 1 to 6 only "<<endl;
         break;
     }
-    }
-    
-    
+    }    
 }
